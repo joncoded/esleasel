@@ -327,14 +327,7 @@ if uploaded_files:
                 answer = response.choices[0].message.content
 
         st.session_state.qa_history.append({"q": q, "a": answer})
-        st.session_state.user_question = ""  # clear the widget (allowed inside callback)
-
-    with st.form(key="question_form"):
-        col1, col2 = st.columns([4,1], vertical_alignment="bottom")
-        with col1:
-            st.text_input("Ask a question about the uploaded documents:", key="user_question")
-        with col2:
-            st.form_submit_button("Send", on_click=process_question)
+        st.session_state.user_question = ""  # clear the widget (allowed inside callback)    
 
     if len(st.session_state.qa_history) > 0:
         st.write("### Conversation history:")
@@ -346,3 +339,10 @@ if uploaded_files:
         st.write("Q:", pair["q"])
         st.write("A:", pair["a"])
         st.write("---")
+
+    with st.form(key="question_form"):
+        col1, col2 = st.columns([4,1], vertical_alignment="bottom")
+        with col1:
+            st.text_input("Ask a question about the uploaded documents:", key="user_question")
+        with col2:
+            st.form_submit_button("Send", on_click=process_question)
