@@ -47,7 +47,7 @@ client = OpenAI(
     api_key=key_myllm,
     base_url="https://api.groq.com/openai/v1"
 )
-use_model = "groq/compound-mini"
+use_model = "llama-3.3-70b-versatile"
 
 # === STREAMLIT UI SETUP
 import streamlit as st
