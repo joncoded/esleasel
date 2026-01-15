@@ -126,7 +126,7 @@ if uploaded_files:
     # ===== FILE PROCESSOR
 
     # text loading into tempfile(s)
-    st.write(f"📁 Uploaded {len(uploaded_files)} files: processing...")
+    st.write(f"📁 Uploaded {len(uploaded_files)} files: processing... (please be patient especially for large files!)")
     from langchain_community.document_loaders import PyPDFLoader
     import tempfile
 
@@ -182,7 +182,7 @@ if uploaded_files:
     embeddings = SentenceTransformerEmbeddings(
         model_name = "intfloat/e5-base"
     )
-    st.write("⚙️ Loading chunks to database... this may take a while so thanks for your patience! 🙂")
+    st.write("⚙️ Loading chunks to database... this may take a while, so thanks for your patience! 🙂")
 
     # batch embed document chunks (use embed_documents for document embeddings)
 
