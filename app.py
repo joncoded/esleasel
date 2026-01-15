@@ -97,19 +97,25 @@ with st.expander("Settings", expanded=True, icon="⚙️"):
             step = 1
         )
 
-    summary_sentiment = st.radio(
-        "Include sentiment analysis?",
-        options = ["No", "Yes"],
-        index = 0,
-        horizontal = True
-    )
+    col1, col2 = st.columns([1,1], vertical_alignment="top")
 
-    summary_ner = st.radio(
-        "Include list of persons' names found in document (named entity recognition)?",
-        options = ["No", "Yes"],
-        index = 0,
-        horizontal = True
-    )
+    with col1:
+
+        summary_sentiment = st.radio(
+            "**Sentiment analysis**: \n\n _Show the vibe of the document(s)?_",
+            options = ["No", "Yes"],
+            index = 0,
+            horizontal = True
+        )
+
+    with col2: 
+
+        summary_ner = st.radio(
+            "**Named entity recognition**: \n\n_Show a list of names (of people and groups and places) found in document(s)?_",
+            options = ["No", "Yes"],
+            index = 0,
+            horizontal = True
+        )
 
 uploaded_files = st.file_uploader("Upload 1+ PDF files to summarize", type=["pdf"], accept_multiple_files=True)
 
