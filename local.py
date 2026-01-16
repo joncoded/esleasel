@@ -6,7 +6,7 @@ l = {
   "en" : {
     "ask_question" : "Ask a question", 
     "bullets" : "Bullet points",
-    "conversation_history" : "Conversation history",
+    "discussion_history" : "Discussion history",
     "could_not_clear_namespace" : "Could not clear namespace", 
     "files_uploaded" : "File(s) uploaded",
     "loading_chunks" : "Loading chunks to database...",    

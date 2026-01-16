@@ -143,6 +143,8 @@ if "processing_started" not in st.session_state:
 # USER CONFIGURATION
 # =========================================================
 
+st.write("## 📑 Upload documents")
+
 uploaded_files = st.file_uploader(
     text["upload_instructions"],
     type=["pdf"],
@@ -344,7 +346,7 @@ if uploaded_files and st.session_state.processing_started:
         st.write(f"🔥 {text["processing_docs"]}")
         st.session_state.embeddings = ingest_files(uploaded_files)
 
-    st.header(f"📄 {text["summary_of_documents"]}")
+    st.header(f"📋 {text["summary_of_documents"]}")
 
     files_shown = 0
 
@@ -435,7 +437,7 @@ if st.session_state.embeddings:
         st.session_state.user_question = ""
 
     if st.session_state.qa_history:       
-        st.write(f"### {text["conversation_history"]}")
+        st.write(f"## 💬 {text["discussion_history"]}")
         for pair in st.session_state.qa_history:
             with st.chat_message("q"):                
                 st.write(f"**{pair['q']}**")
@@ -453,7 +455,7 @@ if st.session_state.embeddings:
 # CHAT RESET CONTROLS
 # =========================================================
 
-st.caption(f"{text["start_over"]}: ")
+st.write(f"## ♻️ {text["start_over"]}: ")
 
 if st.button(f"🆕 {text["reset_everything"]}"):
     # full reset
