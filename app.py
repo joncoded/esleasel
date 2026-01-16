@@ -22,27 +22,33 @@ from openai import OpenAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+load_dotenv()
 
 # =========================================================
-# CONFIGURATION STRINGS
+# DEVELOPER CONFIGURATION
 # =========================================================
 
-ll = "en"
+# language constants
+text = l["en"]
 
+# pinecone
 use_index = "jonsrags"
 use_phost = "https://jonsrags-su5cgy0.svc.aped-4627-b74a.pinecone.io"
-use_myllm = "openai/gpt-oss-20b"
 
-app_title = "jonorags"
-app_tagline = "📄 PDF summarizer and discusser"
+# llm
+use_myllm = "openai/gpt-oss-20b"
+max_tokens = 1000
+
+# ui
+app_title = "JONORAGS 📜"
+app_tagline = "pdf summarizer and discusser"
 
 # =========================================================
 # API KEYS
 # =========================================================
 
-load_dotenv()
-key_myllm = os.getenv("LLM_API_KEY", "").strip()
 key_vecdb = os.getenv("PINECONE_API_KEY", "").strip()
+key_myllm = os.getenv("LLM_API_KEY", "").strip()
 
 if not key_myllm:
     st.error("❌ Missing API key (LLM_API_KEY)")
@@ -53,7 +59,7 @@ if not key_vecdb:
     st.stop()
 
 # =========================================================
-# CONNECTIONS TO DB + LLM
+# CONNECTIONS TO VECTOR DB
 # =========================================================
 
 pinecone = Pinecone(api_key = key_vecdb, environment="us-west1-gcp")
@@ -62,6 +68,10 @@ index = pinecone.Index(
     host = use_phost
 )
 namespace = "session"
+
+# =========================================================
+# CONNECTIONS TO LLM
+# =========================================================
 
 client = OpenAI(
     api_key = key_myllm,
@@ -82,18 +92,27 @@ st.markdown(
         .stExpander > details > summary > span > span:first-child { display: none; }
         /* expander button fixes due to streamlit glitch */
         .stExpander > details > summary > span > div::before { 
-            content: "⬇️"; display: inline-block; margin-right: 8px; 
+            content: "▼"; display: inline-block; margin-right: 8px; 
         }          
         .stExpander > details[open] > summary > span > div::before { 
-            content: "⬆️"; display: inline-block; margin-right: 8px; 
+            content: "▲"; display: inline-block; margin-right: 8px; 
         }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title(app_title)
-st.header(app_tagline)
+# sticky header hack
+def header(content):
+     st.markdown(f"""
+                <div style="position:fixed; top:60px; left:0; width:100%; background-color:#222; color:#fff; padding:5px; z-index:9999">
+                    <div style="display:flex; justify-content:center; align-items:center;">
+                        {content}
+                    </div>
+                </div>""", unsafe_allow_html=True)
+header(f"<h1 style=\"font-size:24px\">{app_title}</h1> <div style=\"font-size:12px\">{app_tagline}</div>")
+# padding hack
+st.write("<br><br>", unsafe_allow_html=True)
 
 # =========================================================
 # SESSION STATES
@@ -121,46 +140,56 @@ if "processing_started" not in st.session_state:
     st.session_state.processing_started = False
 
 # =========================================================
-# USER-DEFINED SETTINGS
+# USER CONFIGURATION
 # =========================================================
 
-with st.expander("Settings", expanded=True):
-
-    st.text(l[ll]["settings_numbers"])
-
-    col1, col2, col3 = st.columns(3, vertical_alignment="bottom")
-
-    with col1:
-        summary_sentences = st.number_input(l[ll]["sentences"], min_value=1, max_value=10, value=3)
-    with col2:
-        summary_bullets = st.number_input(l[ll]["bullets"], min_value=1, max_value=5, value=2)
-    with col3:
-        max_tokens = st.number_input(l[ll]["max_tokens"], min_value=200, max_value=2000, value=400, step=100)
-
-    col1, col2 = st.columns(2, vertical_alignment="top")
-    
-    with col1:
-        label_sentiment = f"""{l[ll]["sentiment_analysis"]} \n\n {l[ll]["sentiment_analysis_ex"]}"""
-        summary_sentiment = st.radio(
-            label_sentiment, ["No", "Yes"], horizontal=True
-        )
-    with col2:
-        label_ner = f"""{l[ll]["ner"]} \n\n {l[ll]["ner_ex"]}"""
-        summary_ner = st.radio(
-            label_ner, ["No", "Yes"], horizontal=True
-        )
-
 uploaded_files = st.file_uploader(
-    l[ll]["upload_instructions"],
+    text["upload_instructions"],
     type=["pdf"],
     accept_multiple_files=True,
     key=f"pdf_uploader_{st.session_state.uploader_key}"
 )
 
+with st.expander("⚙️ Settings", expanded=True):
+
+    st.text(text["settings_question"])
+
+    col1, col2 = st.columns(2, vertical_alignment="bottom")
+
+    with col1:
+        summary_sentences = st.number_input(text["sentences"], min_value=1, max_value=10, value=3)
+    with col2:
+        summary_bullets = st.number_input(text["bullets"], min_value=1, max_value=5, value=2)
+
+    col1, col2 = st.columns(2, vertical_alignment="top")
+    
+    with col1:
+        label_sentiment = f"""{text["sentiment_analysis"]} \n\n {text["sentiment_analysis_ex"]}"""
+        summary_sentiment = st.radio(
+            label_sentiment, ["No", "Yes"], horizontal=True
+        )
+    with col2:
+        label_ner = f"""{text["ner"]} \n\n {text["ner_ex"]}"""
+        summary_ner = st.radio(
+            label_ner, ["No", "Yes"], horizontal=True
+        )
+
+# track uploaded files to detect new uploads
+if "last_uploaded_files" not in st.session_state:
+    st.session_state.last_uploaded_files = []
+
+# check if new files were uploaded
+if uploaded_files and uploaded_files != st.session_state.last_uploaded_files:
+    st.session_state.summaries = {}
+    st.session_state.doc_hashes = set()
+    st.session_state.embeddings = None
+    st.session_state.processing_started = False
+    st.session_state.last_uploaded_files = uploaded_files
+
 # show process button only if files are uploaded and not yet processed
 if uploaded_files:
-    st.info(f"""📁 {l[ll]["files_uploaded"]} : {len(uploaded_files)} ... {l[ll]["process_click_when_ready"]}""")
-    if st.button(f"🚀 {l[ll]["process_docs"]}", type="secondary"):
+    st.info(f"""📁 {text["files_uploaded"]} : {len(uploaded_files)} ... {text["process_click_when_ready"]}""")
+    if st.button(f"🚀 {text["process_docs"]}", type="secondary"):
         st.session_state.processing_started = True
         st.rerun()
 
@@ -187,7 +216,7 @@ def ingest_files(uploaded_files):
             file_docs = loader.load()
 
         files_loaded += 1
-        st.write(f"⏳ {l[ll]["processed_file"]}: {files_loaded}/{len(uploaded_files)}: {uploaded_file.name} ...")            
+        st.write(f"⏳ {text["processed_file"]}: {files_loaded}/{len(uploaded_files)}: {uploaded_file.name} ...")            
 
         for d in file_docs:
             d.metadata["source"] = uploaded_file.name
@@ -199,28 +228,29 @@ def ingest_files(uploaded_files):
         
         documents.extend(file_docs)
 
-    st.write(f"📜 {l[ll]["pages_processed"]}:", len(documents))
+    st.write(f"📜 {text["pages_processed"]}:", len(documents))
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
-    with st.spinner(st.write(f"⚙️ {l[ll]["splitting_documents"]}")):    
-        docs = splitter.split_documents(documents)
-
+    
+    st.write(f"⚙️ {text["splitting_documents"]}")
+    docs = splitter.split_documents(documents)
     embeddings = HuggingFaceEmbeddings(model_name="intfloat/e5-base")
-    with st.spinner(st.write(f"⚙️ {l[ll]["loading_chunks"]}")):        
-        texts = [d.page_content for d in docs]
-        vectors_emb = embeddings.embed_documents(texts)
+    
+    st.write(f"⚙️ {text["loading_chunks"]}")      
+    texts = [d.page_content for d in docs]
+    vectors_emb = embeddings.embed_documents(texts)
 
-        vectors = []
-        for i, (doc, vec) in enumerate(zip(docs, vectors_emb)):
-            vectors.append({
-                "id": f"{doc.metadata.get('source','doc')}-{i}-{uuid.uuid4().hex[:8]}",
-                "values": vec,
-                "metadata": {
-                    "source": doc.metadata.get("source", ""),
-                    "page": doc.metadata.get("page", -1),
-                    "text": doc.page_content,
-                },
-            })
+    vectors = []
+    for i, (doc, vec) in enumerate(zip(docs, vectors_emb)):
+        vectors.append({
+            "id": f"{doc.metadata.get('source','doc')}-{i}-{uuid.uuid4().hex[:8]}",
+            "values": vec,
+            "metadata": {
+                "source": doc.metadata.get("source", ""),
+                "page": doc.metadata.get("page", -1),
+                "text": doc.page_content,
+            },
+        })
 
     # ensure index is deleted before upserting
     try:
@@ -238,7 +268,7 @@ def summarize_document(content):
     """Summarize document content using the LLM."""
     
     if not content or len(content.strip()) == 0:
-        return "⚠️ " + l[ll]["no_content_to_summarize"]
+        return "⚠️ " + text["no_content_to_summarize"]
     
     try:
         splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
@@ -248,7 +278,8 @@ def summarize_document(content):
         for chunk in chunks:
             try:
                 r = client.chat.completions.create(
-                    model=use_myllm,            
+                    model=use_myllm,      
+                    max_tokens=max_tokens,      
                     messages=[
                         {"role": "system", "content": "Summarize this document chunk concisely."},
                         {"role": "user", "content": chunk}
@@ -260,7 +291,7 @@ def summarize_document(content):
                 continue
 
         if not partials:
-            return "⚠️ " + l[ll]["no_content_to_summarize"]
+            return "⚠️ " + text["no_content_to_summarize"]
 
         combined = "\n".join(partials)
 
@@ -278,8 +309,8 @@ def summarize_document(content):
             prompt += "\nList named entities grouped by type."
 
         summary_response = client.chat.completions.create(
-            model=use_myllm,
-            max_tokens=max_tokens,
+            model=use_myllm,       
+            max_tokens=max_tokens,     
             messages=[
                 {"role": "system", "content": "You summarize PDF documents clearly and concisely."},
                 {"role": "user", "content": prompt}
@@ -299,10 +330,10 @@ def summarize_document(content):
 
 if uploaded_files and st.session_state.processing_started:
     if st.session_state.embeddings is None:
-        st.write(f"🔥 {l[ll]["processing_docs"]}")
+        st.write(f"🔥 {text["processing_docs"]}")
         st.session_state.embeddings = ingest_files(uploaded_files)
 
-    st.header(f"📄 {l[ll]["summary_of_documents"]}")
+    st.header(f"📄 {text["summary_of_documents"]}")
 
     files_shown = 0
 
@@ -310,38 +341,50 @@ if uploaded_files and st.session_state.processing_started:
         h = file_hash(uploaded_file)
 
         if h not in st.session_state.doc_hashes:
-            # Get content from session state
+            
+            # get content from session state            
             content = st.session_state.doc_contents.get(h, "")
             
-            if content:
-                with st.spinner(f"{l[ll]["summary_generating"]} ({uploaded_file.name})"):
-                    summary = summarize_document(content, uploaded_file.name)
-                    st.session_state.summaries[h] = {
-                        "name": uploaded_file.name,
-                        "summary": summary,
-                    }
-                    st.session_state.doc_hashes.add(h)
-            else:
-                st.warning(f"⚠️ {l[ll]["no_content_found"]} ({uploaded_file.name})")
+            if content:                
+                summary = summarize_document(content)
                 st.session_state.summaries[h] = {
                     "name": uploaded_file.name,
-                    "summary": "⚠️ " + l[ll]["no_content_found"],
+                    "summary": summary,
+                }
+                st.session_state.doc_hashes.add(h)
+            else:
+                st.warning(f"⚠️ {text["no_content_found"]} ({uploaded_file.name})")
+                st.session_state.summaries[h] = {
+                    "name": uploaded_file.name,
+                    "summary": "⚠️ " + text["no_content_found"],
                 }
 
         # Display the summary
         expanded = True if files_shown == 0 else False
-        with st.expander(f"{l[ll]["summary"]} ({uploaded_file.name})", expanded=expanded):
+        with st.expander(f"{text["summary"]} ({uploaded_file.name})", expanded=expanded):
             summary_data = st.session_state.summaries.get(h)
             if summary_data and summary_data.get("summary"):
                 st.write(summary_data["summary"])
             else:
-                st.write(f"⚠️ {l[ll]["no_summary_could_be_made"]}")
+                st.write(f"⚠️ {text["no_summary_could_be_made"]}")
         files_shown += 1
     
 
 # =========================================================
 # CHAT
 # =========================================================
+
+# custom CSS for chat messages
+st.html(
+    """
+    <style>
+        .stChatMessage {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }    
+    </style>
+    """
+)
 
 if st.session_state.embeddings:
 
@@ -380,33 +423,34 @@ if st.session_state.embeddings:
         })
         st.session_state.user_question = ""
 
-    if st.session_state.qa_history:
-        st.write(f"### ")
+    if st.session_state.qa_history:       
+        st.write(f"### {text["conversation_history"]}")
         for pair in st.session_state.qa_history:
-            st.write("❓:", pair["q"])
-            st.write("❇️ :", pair["a"])
-            st.write("---")
+            with st.chat_message("q"):                
+                st.write(f"**{pair['q']}**")
+            with st.chat_message("a"):
+                st.write(pair["a"], unsafe_allow_html=True)                     
 
     with st.form("chat_form"):
         col1, col2 = st.columns([4,1], vertical_alignment="bottom")
         with col1:
-            st.text_input(f"{l[ll]["ask_question"]}", key="user_question")
+            st.text_input(f"{text["ask_question"]}", key="user_question")
         with col2:
-            st.form_submit_button(l[ll]["submit_message"], on_click=process_question)
+            st.form_submit_button(text["submit_message"], on_click=process_question)
 
 # =========================================================
 # CHAT RESET CONTROLS
 # =========================================================
 
-st.caption(f"{l[ll]["start_over"]}: ")
+st.caption(f"{text["start_over"]}: ")
 
-if st.button(f"🆕 {l[ll]["reset_everything"]}"):
+if st.button(f"🆕 {text["reset_everything"]}"):
     # full reset
     try:
         index.delete(delete_all=True, namespace=namespace)
     except Exception as e:
         if "not found" not in str(e).lower():
-            st.warning(f"{l[ll]["could_not_clear_namespace"]}: {e}")
+            st.warning(f"{text["could_not_clear_namespace"]}: {e}")
     
     # Increment uploader_key to clear file uploader
     uploader_key = st.session_state.get("uploader_key", 0)
@@ -415,7 +459,7 @@ if st.button(f"🆕 {l[ll]["reset_everything"]}"):
     st.session_state.processing_started = False
     st.rerun()        
 
-if st.button(f"💬 {l[ll]["reset_just_the_chat"]}"):
+if st.button(f"💬 {text["reset_just_the_chat"]}"):
     # keep documents
     for key in [
         "qa_history",
