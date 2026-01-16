@@ -152,14 +152,14 @@ uploaded_files = st.file_uploader(
 
 with st.expander("⚙️ Settings", expanded=True):
 
-    st.text(text["settings_question"])
+    st.text(text["settings_docs_question"])
 
     col1, col2 = st.columns(2, vertical_alignment="bottom")
 
     with col1:
-        summary_sentences = st.number_input(text["sentences"], min_value=1, max_value=10, value=3)
+        summary_sentences = st.number_input(text["sentences"], min_value=1, max_value=10, value=3, key="summary_sentences_input")
     with col2:
-        summary_bullets = st.number_input(text["bullets"], min_value=1, max_value=5, value=2)
+        summary_bullets = st.number_input(text["bullets"], min_value=1, max_value=5, value=2, key="summary_bullets_input")
 
     col1, col2 = st.columns(2, vertical_alignment="top")
     
@@ -173,6 +173,13 @@ with st.expander("⚙️ Settings", expanded=True):
         summary_ner = st.radio(
             label_ner, ["No", "Yes"], horizontal=True
         )
+
+    st.text(text["settings_chat_answers"])
+
+    col1, col2 = st.columns(2, vertical_alignment="bottom")
+
+    with col1:
+        answer_sentences = st.number_input(text["sentences"], min_value=1, max_value=10, value=3, key="answer_sentences_input")    
 
 # track uploaded files to detect new uploads
 if "last_uploaded_files" not in st.session_state:
@@ -416,7 +423,7 @@ if st.session_state.embeddings:
             model=use_myllm,
             max_tokens=max_tokens,
             messages=[
-                {"role": "system", "content": "Answer using the provided context in 6 sentences or less. If necessary, answer in more but try to be as concise as possible. If you do not know the answer, then say you don't know."},
+                {"role": "system", "content": f"Answer using the provided context in {answer_sentences} sentences or less. If necessary, answer in more but try to be as concise as possible. If you do not know the answer, then say you don't know."},
                 {"role": "user", "content": prompt}
             ]
         )
