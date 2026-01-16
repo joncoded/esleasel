@@ -233,7 +233,7 @@ def ingest_files(uploaded_files):
 
     return embeddings
 
-def summarize_document(content, filename):
+def summarize_document(content):
     
     """Summarize document content using the LLM."""
     
