@@ -20,7 +20,7 @@ from local import *
 from pinecone import Pinecone
 from openai import OpenAI
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # =========================================================
@@ -202,26 +202,27 @@ def ingest_files(uploaded_files):
     st.write(f"📜 {l[ll]["pages_processed"]}:", len(documents))
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
-    st.write(f"⚙️ {l[ll]["splitting_documents"]}")
-    docs = splitter.split_documents(documents)
+    with st.spinner(st.write(f"⚙️ {l[ll]["splitting_documents"]}")):    
+        docs = splitter.split_documents(documents)
 
-    embeddings = SentenceTransformerEmbeddings(model_name="intfloat/e5-base")
-    st.write(f"⚙️ {l[ll]["loading_chunks"]}")
-    texts = [d.page_content for d in docs]
-    vectors_emb = embeddings.embed_documents(texts)
+    embeddings = HuggingFaceEmbeddings(model_name="intfloat/e5-base")
+    with st.spinner(st.write(f"⚙️ {l[ll]["loading_chunks"]}")):        
+        texts = [d.page_content for d in docs]
+        vectors_emb = embeddings.embed_documents(texts)
 
-    vectors = []
-    for i, (doc, vec) in enumerate(zip(docs, vectors_emb)):
-        vectors.append({
-            "id": f"{doc.metadata.get('source','doc')}-{i}-{uuid.uuid4().hex[:8]}",
-            "values": vec,
-            "metadata": {
-                "source": doc.metadata.get("source", ""),
-                "page": doc.metadata.get("page", -1),
-                "text": doc.page_content,
-            },
-        })
+        vectors = []
+        for i, (doc, vec) in enumerate(zip(docs, vectors_emb)):
+            vectors.append({
+                "id": f"{doc.metadata.get('source','doc')}-{i}-{uuid.uuid4().hex[:8]}",
+                "values": vec,
+                "metadata": {
+                    "source": doc.metadata.get("source", ""),
+                    "page": doc.metadata.get("page", -1),
+                    "text": doc.page_content,
+                },
+            })
 
+    # ensure index is deleted before upserting
     try:
         index.delete(delete_all=True, namespace=namespace)
     except Exception as e:
