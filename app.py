@@ -36,7 +36,7 @@ use_index = "jonsrags"
 use_phost = "https://jonsrags-su5cgy0.svc.aped-4627-b74a.pinecone.io"
 
 # llm
-use_myllm = "openai/gpt-oss-20b"
+use_myllm = "llama-3.3-70b-versatile"
 max_tokens = 1000
 
 # ui
