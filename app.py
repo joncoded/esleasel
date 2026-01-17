@@ -8,9 +8,13 @@
 # - ability to ask questions and get answers based on PDF contents
 #
 # enhancements:
-# - adjustable summary length and tokens
+# - adjustable summary length (user-side) and tokens (developer-side)
 # - sentiment analysis
 # - find named entities
+
+# =========================================================
+# IMPORTS
+# =========================================================
 
 from dotenv import load_dotenv
 import os, tempfile, uuid, hashlib
@@ -499,12 +503,14 @@ if docs_ready:
                 include_values=False,
             )
 
+            # store the context for the chat session
             context = " ".join(
                 m["metadata"].get("text", "") for m in results.get("matches", [])
             )
 
             prompt_text = f"Context: {context}\n\nQ: {q}\n\n A:"
 
+            # retrieval augmented generation!
             with st.chat_message(name="❇️", avatar="❇️"):
                 with st.spinner(f"{text['thinking']}"):
                     r = client.chat.completions.create(

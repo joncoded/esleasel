@@ -35,4 +35,3 @@ finally, back in the command line, run the app:
 ```
 streamlit run app.py
 ```
-
