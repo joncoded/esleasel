@@ -36,7 +36,7 @@ use_index = "jonsrags"
 use_phost = "https://jonsrags-su5cgy0.svc.aped-4627-b74a.pinecone.io"
 
 # llm
-use_myllm = "llama-3.3-70b-versatile"
+use_myllm = "openai/gpt-oss-120b"
 max_tokens = 1000
 
 # ui
@@ -139,6 +139,9 @@ if "uploader_key" not in st.session_state:
 if "processing_started" not in st.session_state:
     st.session_state.processing_started = False
 
+if "should_scroll" not in st.session_state:
+    st.session_state.should_scroll = False
+
 # =========================================================
 # USER CONFIGURATION
 # =========================================================
@@ -198,9 +201,13 @@ if uploaded_files and uploaded_files != st.session_state.last_uploaded_files:
 # show process button only if files are uploaded and not yet processed
 if uploaded_files:
     st.info(f"""📁 {text["files_uploaded"]} : {len(uploaded_files)} ... {text["process_click_when_ready"]}""")
-    if st.button(f"🚀 {text["process_docs"]}", type="secondary"):
-        st.session_state.processing_started = True
-        st.rerun()
+    col1, col2 = st.columns([2, 1])
+    with col2:
+        if st.button(f"🚀 {text["process_docs"]}", type="secondary", use_container_width=True):
+            st.session_state.summaries = {}
+            st.session_state.doc_hashes = set()
+            st.session_state.processing_started = True
+            st.rerun()
 
 # =========================================================
 # HELPERS
@@ -218,40 +225,44 @@ def ingest_files(uploaded_files):
     documents = []
     files_loaded = 0 
 
-    for uploaded_file in uploaded_files:
+    with st.spinner(f"{text["processing_file"]}"):
 
-        # load PDF file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            tmp.write(uploaded_file.getvalue())
-            tmp.flush()
-            loader = PyPDFLoader(tmp.name)
-            file_docs = loader.load()
+        for uploaded_file in uploaded_files:
 
-        files_loaded += 1
-        st.write(f"⏳ {text["processed_file"]}: {files_loaded}/{len(uploaded_files)}: {uploaded_file.name} ...")            
+            # load PDF file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                tmp.write(uploaded_file.getvalue())
+                tmp.flush()
+                loader = PyPDFLoader(tmp.name)
+                file_docs = loader.load()
 
-        for d in file_docs:
-            d.metadata["source"] = uploaded_file.name
+            files_loaded += 1
+            st.write(f"⏳ {text["processed_file"]}: {files_loaded}/{len(uploaded_files)}: {uploaded_file.name} ...")            
 
-        # store the combined content with the file hash
-        combined_content = "\n\n".join(d.page_content for d in file_docs)
-        h = file_hash(uploaded_file)
-        st.session_state.doc_contents[h] = combined_content
-        
-        documents.extend(file_docs)
+            for d in file_docs:
+                d.metadata["source"] = uploaded_file.name
+
+            # store the combined content with the file hash
+            combined_content = "\n\n".join(d.page_content for d in file_docs)
+            h = file_hash(uploaded_file)
+            st.session_state.doc_contents[h] = combined_content
+            
+            documents.extend(file_docs)
 
     st.write(f"📜 {text["pages_processed"]}:", len(documents))
 
     # text splitting
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)    
-    st.write(f"⚙️ {text["splitting_documents"]}")
-    docs = splitter.split_documents(documents)
-    embeddings = HuggingFaceEmbeddings(model_name="intfloat/e5-base")
-    
+    with st.spinner(text["splitting_documents"]):    
+        docs = splitter.split_documents(documents)
+        embeddings = HuggingFaceEmbeddings(model_name="intfloat/e5-base")
+    st.write(f"⚙️ {text["splitted_documents"]}")
+
     # chunk loading
-    st.write(f"⚙️ {text["loading_chunks"]}")      
-    texts = [d.page_content for d in docs]
-    vectors_emb = embeddings.embed_documents(texts)
+    with st.spinner(text["loading_chunks"]):        
+        texts = [d.page_content for d in docs]
+        vectors_emb = embeddings.embed_documents(texts)
+    st.write(f"⚙️ {text["loaded_chunks"]}")      
 
     # vector upsert preparation
     vectors = []
@@ -313,13 +324,37 @@ def summarize_document(content):
         <request>
         Summarize in {summary_sentences} sentences with {summary_bullets} bullet points.
         </request>
+        <format>
+        Summary sentence(s) can go here
+        - Bullet point 1
+        - Bullet point 2
+        ...
+        - Bullet point N
+        </format>
         """
 
         if summary_sentiment == "Yes":
-            prompt += "\nProvide a brief sentiment analysis."
+            prompt += """\n
+                <additional_request>
+                Provide a brief sentiment analysis.
+                </additional_request>
+                <add_to_format>
+                Sentiment analysis:
+                - Sentiment summary here
+                </add_to_format>
+            """
 
         if summary_ner == "Yes":
-            prompt += "\nList named entities grouped by type."
+            prompt += """\n
+                <additional_request>
+                List named entities grouped by type.
+                </additional_request>
+                <add_to_format>
+                Named entities:
+                - Named entity 1
+                - Named entity 2
+                </add_to_format>
+            """
 
         summary_response = client.chat.completions.create(
             model=use_myllm,       
@@ -374,7 +409,7 @@ if uploaded_files and st.session_state.processing_started:
                         "summary": "⚠️ " + text["no_content_found"],
                     }
 
-            # Display the summary
+            # display the summary
             expanded = True if files_shown == 0 else False
             with st.expander(f"{text["summary"]} ({uploaded_file.name})", expanded=expanded):
                 summary_data = st.session_state.summaries.get(h)
@@ -389,97 +424,108 @@ if uploaded_files and st.session_state.processing_started:
 # CHAT
 # =========================================================
 
-# custom CSS for chat messages
-st.html(
-    """
-    <style>
-        .stChatMessage {
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }    
-    </style>
-    """
-)
+docs_ready = bool(st.session_state.get("embeddings"))
 
-if st.session_state.embeddings:
+if docs_ready:
 
-    def process_question():
-        q = st.session_state.user_question.strip()
-        if not q:
-            return
-
-        q_emb = st.session_state.embeddings.embed_query(q)
-        results = index.query(
-            vector=q_emb,
-            top_k=10,
-            namespace=namespace,
-            include_metadata=True,
-            include_values=False,
-        )
-
-        context = " ".join(
-            m["metadata"].get("text", "") for m in results.get("matches", [])
-        )
-
-        prompt = f"Context: {context}\n\nQ: {q}\n\n A:"
-
-        r = client.chat.completions.create(
-            model=use_myllm,
-            max_tokens=max_tokens,
-            messages=[
-                {"role": "system", "content": f"Answer using the provided context in {answer_sentences} sentences or less. If necessary, answer in more but try to be as concise as possible. If you do not know the answer, then say you don't know."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        st.session_state.qa_history.append({
-            "q": q,
-            "a": r.choices[0].message.content
-        })
+    # initialize chat history if needed
+    if "qa_history" not in st.session_state:
+        st.session_state.qa_history = []
+    if "user_question" not in st.session_state:
         st.session_state.user_question = ""
 
-    if st.session_state.qa_history:       
-        st.write(f"## 💬 {text["discussion_history"]}")
-        for pair in st.session_state.qa_history:
-            with st.chat_message("q"):                
-                st.write(f"**{pair['q']}**")
-            with st.chat_message("a"):
-                st.write(pair["a"], unsafe_allow_html=True)                     
+    st.write(f"## 💬 {text['discussion_history']}")
 
-    with st.form("chat_form"):
-        col1, col2 = st.columns([4,1], vertical_alignment="bottom")
+    # display all messages (top to bottom)
+    for pair in st.session_state.qa_history:
+        with st.chat_message(name="?", avatar="❓"):
+            st.markdown(pair['q'])
+        with st.chat_message(name="AI", avatar="❇️"):
+            st.markdown(pair["a"])
+
+if docs_ready:
+
+    # reset controls in sidebar or above chat
+    if st.session_state.get("doc_contents"):
+        col1, col2, col3 = st.columns([2, 1, 1], vertical_alignment="bottom")
         with col1:
-            st.text_input(f"{text["ask_question"]}", key="user_question")
+            st.markdown(
+                f"""
+                <a href="#upload-documents" style="display: inline-block;  
+                text-decoration: none; 
+                text-align: left; width: 100%; 
+                ">
+                ⬆️ {text["files_and_settings"]}
+                </a>
+                """,
+                unsafe_allow_html=True
+            )
         with col2:
-            st.form_submit_button(text["submit_message"], on_click=process_question)
+            if st.button(f"🆕 {text['reset_everything']}", use_container_width=True):
+                try:
+                    index.delete(delete_all=True, namespace=namespace)
+                except Exception as e:
+                    if "not found" not in str(e).lower():
+                        st.warning(f"{text['could_not_clear_namespace']}: {e}")
+                uploader_key = st.session_state.get("uploader_key", 0)
+                st.session_state.clear()
+                st.session_state.uploader_key = uploader_key + 1
+                st.session_state.processing_started = False
+                st.rerun()
+        with col3:
+            if st.button(f"💬 {text['reset_just_the_chat']}", use_container_width=True):
+                st.session_state.qa_history = []
+                st.rerun()         
 
-# =========================================================
-# CHAT RESET CONTROLS
-# =========================================================
+    # chat input at the bottom (fixed by Streamlit)
+    if prompt := st.chat_input(f"{text['ask_question']}", max_chars=500):
+        
+        # add user message to history
+        q = prompt.strip()
+        
+        if q:
 
-st.write(f"## ♻️ {text["start_over"]}: ")
+            # display user message immediately
+            with st.chat_message(name="❓", avatar="❓"):
+                st.markdown(q)
+            
+            # generate assistant response
+            q_emb = st.session_state.embeddings.embed_query(q)
+            results = index.query(
+                vector=q_emb,
+                top_k=10,
+                namespace=namespace,
+                include_metadata=True,
+                include_values=False,
+            )
 
-if st.button(f"🆕 {text["reset_everything"]}"):
-    # full reset
-    try:
-        index.delete(delete_all=True, namespace=namespace)
-    except Exception as e:
-        if "not found" not in str(e).lower():
-            st.warning(f"{text["could_not_clear_namespace"]}: {e}")
-    
-    # Increment uploader_key to clear file uploader
-    uploader_key = st.session_state.get("uploader_key", 0)
-    st.session_state.clear()
-    st.session_state.uploader_key = uploader_key + 1
-    st.session_state.processing_started = False
-    st.rerun()        
+            context = " ".join(
+                m["metadata"].get("text", "") for m in results.get("matches", [])
+            )
 
-if st.button(f"💬 {text["reset_just_the_chat"]}"):
-    # keep documents
-    for key in [
-        "qa_history",
-        "user_question",
-    ]:
-        st.session_state.pop(key, None)
+            prompt_text = f"Context: {context}\n\nQ: {q}\n\n A:"
 
-    st.rerun()
+            with st.chat_message(name="❇️", avatar="❇️"):
+                with st.spinner(f"{text['thinking']}"):
+                    r = client.chat.completions.create(
+                        model=use_myllm,
+                        max_tokens=max_tokens,
+                        messages=[
+                            {"role": "system", "content": f"Answer using the provided context in {answer_sentences} sentences or less. If necessary, answer in more but try to be as concise as possible. If you do not know the answer, then say you don't know."},
+                            {"role": "user", "content": prompt_text}
+                        ]
+                    )
+                    
+                    response = r.choices[0].message.content
+                    st.markdown(response)
+            
+            # add to history after displaying
+            st.session_state.qa_history.append({
+                "q": q,
+                "a": response
+            })
+            
+            st.rerun()
+
+else:
+    st.write("")
