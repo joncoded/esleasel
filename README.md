@@ -1,4 +1,4 @@
-# jonorags
+# docotoco
 
 an LLM-powered PDF document specialist for all domains:
 
@@ -15,7 +15,7 @@ an LLM-powered PDF document specialist for all domains:
 run the following commands on your command line:
 
 ```
-% git clone https://github.com/joncoded/jonorags.git jonorags && cd jonorags
+% git clone https://github.com/joncoded/docotoco.git docotoco && cd docotoco
 % pip install -r requirements.txt
 ```
 

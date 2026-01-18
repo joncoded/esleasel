@@ -1,4 +1,4 @@
-# jonorags by @joncoded (aka @jonchius)
+# docotoco by @joncoded (aka @jonchius)
 # dictionary of strings 
 # local.py 
 
@@ -40,8 +40,8 @@ l = {
     "summary_of_documents" : "Summary of documents", 
     "thinking" : "Thinking...",
     "files_and_settings" : "Change files and settings...", 
-    "upload_documents" : "Upload documents",
-    "upload_instructions" : "Upload 1+ PDF files to summarize",
+    "upload_documents" : "Upload documents to summarize",
+    "upload_instructions" : "You can upload one (or more) PDF file(s)",
     "yes": "Yes",
     "no": "No"
   },

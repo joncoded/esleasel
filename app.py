@@ -1,5 +1,5 @@
 # =========================================================
-# jonorags by @joncoded (aka @jonchius)
+# docotoco by @joncoded (aka @jonchius)
 # document summarizer and discussion chatbot
 # app.py
 #
@@ -47,7 +47,7 @@ use_phost = os.getenv("PINECONE_HOST").strip()
 use_myllm = "openai/gpt-oss-120b"
 
 # ui
-app_title = "JONORAGS ❇️"
+app_title = "DOCOTOCO ❇️"
 app_tagline = "pdf summarizer and discusser by @joncoded"
 
 # =========================================================
