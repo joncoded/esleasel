@@ -48,7 +48,6 @@ use_myllm = "openai/gpt-oss-120b"
 
 # ui
 app_title = "DOCOTOCO ❇️"
-app_tagline = text["tagline"]
 
 # =========================================================
 # API KEYS
@@ -143,17 +142,6 @@ st.markdown(
     unsafe_allow_html = True
 )
 
-# sticky header hack
-def header(content):
-    st.markdown(f"""
-        <div style="position:fixed; top:60px; left:0; width:100%; background-color:#222; color:#fff; padding:5px; z-index:9999">
-            <div style="display:flex; justify-content:center; align-items:center;">
-                {content}
-            </div>
-        </div>""", unsafe_allow_html = True)
-
-header(f"<h1 style=\"font-size:24px\">{app_title}</h1><div style=\"font-size:12px\">{app_tagline}</div>")
-
 # padding hack
 st.write("<br><br>", unsafe_allow_html = True)
 
@@ -167,6 +155,17 @@ selected_lang_label = st.selectbox(
 )
 st.session_state.lang = lang_options[selected_lang_label]
 text = l.get(st.session_state.lang, l["en"])
+
+# sticky header hack
+def header(content):
+    st.markdown(f"""
+        <div style="position:fixed; top:60px; left:0; width:100%; background-color:#222; color:#fff; padding:5px; z-index:9999">
+            <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                {content}
+            </div>
+        </div>""", unsafe_allow_html = True)
+
+header(f"<h1 style=\"font-size:24px; padding-bottom: 0;\">{app_title}</h1><div style=\"font-size:12px; padding-bottom:15px; \">{text['tagline']}</div>")
 
 # =========================================================
 # USER CONFIGURATION (⚙️ SETTINGS)

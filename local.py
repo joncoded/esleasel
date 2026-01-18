@@ -4,7 +4,7 @@
 
 l = {
   "en" : {
-    "tagline" : "pdf summarizer and discusser by @joncoded",
+    "tagline" : "pdf summarizer and discusser (a @joncoded project)",
     "ask_question" : "Ask a question", 
     "bullets" : "Bullet points",
     "discussion_history" : "Discussion history",
@@ -47,7 +47,7 @@ l = {
     "no": "No"
   },
   "fr": {      
-    "tagline" : "machine de résumé et discussion des documents PDF par @joncoded",
+    "tagline" : "les résumés et discussions des documents PDF (par @joncoded)",
     "ask_question" : "Veuillez poser une question (en anglais seulement pour l'instant)", 
     "bullets" : "Puces en liste",
     "discussion_history" : "Historique de la discussion",
