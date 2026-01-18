@@ -48,7 +48,7 @@ use_myllm = "openai/gpt-oss-120b"
 
 # ui
 app_title = "DOCOTOCO ❇️"
-app_tagline = l["en"]["tagline"]
+app_tagline = text["tagline"]
 
 # =========================================================
 # API KEYS
