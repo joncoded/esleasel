@@ -503,7 +503,7 @@ if docs_ready:
         with col1:
             st.markdown(
                 f"""
-                <a href="#upload-documents" style="display: inline-block;  
+                <a href="#upload-documents-to-summarize" style="display: inline-block;  
                 text-decoration: none; 
                 text-align: left; width: 100%; 
                 ">
