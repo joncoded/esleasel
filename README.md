@@ -1,21 +1,27 @@
-# docotoco
+# esleasel
 
-an LLM-powered PDF document specialist for all domains:
+an LLM-powered English PDF document analyzer that
 
-- summarizes documents
+- summarizes the text
+  - based on user's English language level
   - customize length of summary 
-- (optionally) gather sentiment analysis
-- (optionally) find list of names of people and organizations
+- (optionally) shows new or "difficult" vocabulary
+- (optionally) shows irregular verbs
+- (optionally) shows and explain idioms like "break the ice" or "hit the sack"
 - allows user to chat (ask questions on or perform operations about) the document
 
-## === setup
+## === demo (for casual users)
+
+look for the link on the github repo sidebar when it launches!
+
+## === setup (for developers)
 
 ### clone repo
 
 run the following commands on your command line:
 
 ```
-% git clone https://github.com/joncoded/docotoco.git docotoco && cd docotoco
+% git clone https://github.com/joncoded/esleasel.git esleasel && cd esleasel
 % pip install -r requirements.txt
 ```
 
@@ -42,3 +48,12 @@ streamlit run app.py
 
 * translate the app into your language with the `local.py` dictionary file
 * go to `app.py` and check/change the `lang_options` variable
+
+### credits
+
+* [Groq](https://groq.com) for LLMs
+* [Pinecone](https://pinecone.io) for vector databases
+* [Langchain](https://www.langchain.com) for its AI agent platform 
+* [Streamlit](https://share.streamlit.io) for its super-easy deployment 
+* [Google Gemini](https://share.google/aimode/7qI3binoXT52SrpK0) for recommending which LLM to use for analyzing English language PDFs
+* [Dr. Satyajit Pattnaik](https://www.linkedin.com/in/satyajitpattnaik/) for technical guidance

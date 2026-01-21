@@ -1,17 +1,14 @@
 # =========================================================
-# docotoco by @joncoded (aka @jonchius)
-# document summarizer and discussion chatbot
+# esleasel by @joncoded (aka @jonchius)
+# English language assistant for new and advanced learners
 # app.py
 #
-# requirements:
+# features: 
 # - input PDF documents and get a variable-sized summary
 # - using vector store + retriever + LLM with streamlit UI
+# - optionally show new words + irregular verbs + idioms
 # - ability to ask questions and get answers based on PDF contents
 #
-# enhancements:
-# - adjustable summary length (user-side) and tokens (developer-side)
-# - sentiment analysis
-# - find named entities
 # =========================================================
 
 # =========================================================
@@ -20,6 +17,7 @@
 
 from dotenv import load_dotenv
 import os, tempfile, uuid, hashlib
+from sqlalchemy import true
 import streamlit as st
 
 from local import *
@@ -44,10 +42,11 @@ use_index = os.getenv("PINECONE_INDEX").strip()
 use_phost = os.getenv("PINECONE_HOST").strip()
 
 # llm
-use_myllm = "openai/gpt-oss-120b"
+use_myllm = "openai/gpt-oss-20b"
+max_tokens = 3000
 
 # ui
-app_title = "DOCOTOCO ❇️"
+app_title = "ESLEASEL 🇬🇧"
 
 # =========================================================
 # API KEYS
@@ -131,6 +130,7 @@ st.markdown(
     """
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        html { scroll-behavior: smooth; }
         *, h1, h2 { font-family: 'Barlow Semi Condensed' !important; }
         .stExpander > details > summary > span > span:first-child { display: none; }
         /* expander button fixes due to streamlit glitch */
@@ -140,6 +140,9 @@ st.markdown(
         .stExpander > details[open] > summary > span > div::before { 
             content: "▲"; display: inline-block; margin-right: 8px; 
         }
+        p, ul { padding-bottom: 10px;}
+        ul ul { margin-top: -10px; }
+        br { line-height: 2; }
     </style>
     """,
     unsafe_allow_html = True
@@ -162,7 +165,7 @@ text = l.get(st.session_state.lang, l["en"])
 # sticky header hack
 def header(content):
     st.markdown(f"""
-        <div style="position:fixed; top:60px; left:0; width:100%; background-color:#222; color:#fff; padding:5px; z-index:9999">
+        <div style="position:fixed; top:60px; left:0; width:100%; background-color:#009; color:#fff; padding:5px; z-index:9999">
             <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
                 {content}
             </div>
@@ -174,7 +177,7 @@ header(f"<h1 style=\"font-size:24px; padding-bottom: 0;\">{app_title}</h1><div s
 # USER CONFIGURATION (⚙️ SETTINGS)
 # =========================================================
 
-st.write(f"## 📑 {text['upload_documents']}")
+st.write(f"## {text['upload_documents']}")
 
 uploaded_files = st.file_uploader(
     text["upload_instructions"],
@@ -183,8 +186,29 @@ uploaded_files = st.file_uploader(
     key = f"pdf_uploader_{st.session_state.uploader_key}",
 )
 
-with st.expander("⚙️ Settings", expanded=True):
+with st.expander(f"⚙️ {text['settings']}", expanded=True):
 
+    # "About you"
+    st.text(text["settings_about_you"])
+
+    level_options = {
+        f"A1 ({text["level_a1"]})": f"A1 ({l['en']['level_a1']})",
+        f"A2 ({text["level_a2"]})": f"A2 ({l['en']['level_a2']})",   
+        f"B1 ({text["level_b1"]})": f"B1 ({l['en']['level_b1']})",
+        f"B2 ({text["level_b2"]})": f"B2 ({l['en']['level_b2']})",
+        f"C1 ({text["level_c1"]})": f"C1 ({l['en']['level_c1']})",
+        f"C2 ({text["level_c2"]})": f"C2 ({l['en']['level_c2']})"
+    }
+
+    summary_level_label = st.selectbox(
+        text["learner_level"],
+        options=list(level_options.keys()),
+        index=0,
+        key="summary_level_select"
+    )
+
+    summary_level = level_options[summary_level_label]
+    
     # "How would you like to summarize each PDF?"
     st.text(text["settings_docs_question"])
 
@@ -193,41 +217,49 @@ with st.expander("⚙️ Settings", expanded=True):
     with col1:
         summary_sentences = st.number_input(text["sentences"], min_value = 1, max_value = 10, value = 3, key = "summary_sentences_input")
     with col2:
-        summary_bullets = st.number_input(text["bullets"], min_value = 1, max_value = 5, value = 2, key = "summary_bullets_input")
+        summary_bullets = st.number_input(text["bullets"], min_value = 0, max_value = 5, value = 2, key = "summary_bullets_input")
 
-    col1, col2 = st.columns(2, vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, vertical_alignment="top")
     
     with col1:
-        label_sentiment = f"""{text["sentiment_analysis"]} \n\n {text["sentiment_analysis_ex"]}"""
-        summary_sentiment = st.radio(
-            label_sentiment, [text["no"], text["yes"]], horizontal = True
+        label_new_vocab = f"""{text["new_vocab"]} \n\n {text["new_vocab_ex"]}"""
+        summary_new_vocab = st.radio(
+            label_new_vocab, [text["yes"], text["no"]], horizontal = True
         )
     with col2:
-        label_ner = f"""{text["ner"]} \n\n {text["ner_ex"]}"""
-        summary_ner = st.radio(
-            label_ner, [text["no"], text["yes"]], horizontal = True
+        label_irregular = f"""{text["irregular_verbs"]} \n\n {text["irregular_verbs_ex"]}"""
+        summary_irregular = st.radio(
+            label_irregular, [text["yes"], text["no"]], horizontal = True
         )
+    with col3:
+        label_idioms = f"""{text["idioms"]} \n\n {text["idioms_ex"]}"""
+        summary_idioms = st.radio(
+            label_idioms, [text["yes"], text["no"]], horizontal = True
+        )
+        
+   
 
     # "How would you like to configure the chat?"
     st.text(text["settings_chat_answers"])
 
-    col1, col2, col3 = st.columns(3, vertical_alignment = "bottom")
+    col1, col2 = st.columns(2, vertical_alignment = "top")
 
     with col1:
         answer_sentences = st.number_input(text["sentences"], min_value = 1, max_value = 10, value = 3, key = "answer_sentences_input")    
 
-    with col2:
-        use_myllm = st.selectbox(
-            text["model_select"],
-            ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"],
-            index = 0,
-            key = "llm_model_select",
+    with col2: 
+        answer_temperature = st.slider(text["temperature"], min_value = 0.0, max_value = 2.0, value = 0.0, step = 0.1, key = "answer_temperature_slider", label_visibility = "visible")
+        st.markdown(
+            f"""
+            <div style="display: flex; justify-content: space-between; margin-top: -15px; font-size: 12px;">
+                <span>🤓 {text["temperature_formal"]}</span>
+                <span>😎 {text["temperature_casual"]}</span>
+                <span>🤪 {text["temperature_crazy"]}</span>
+            </div>
+            """,
+            unsafe_allow_html = True
         )
-
-    with col3:
-        max_tokens = st.number_input(
-            text["max_tokens"], min_value = 500, max_value = 4000, value = 1000, step = 500, key = "max_tokens_input"
-        )
+    
         
 # if new files were uploaded, clear anything below the settings
 if uploaded_files and uploaded_files != st.session_state.last_uploaded_files:
@@ -346,7 +378,7 @@ def ingest_files(uploaded_files):
 
     return embeddings
 
-# summarize a single document with options for sentiment analysis and NER if needed
+# summarize a single document with options for showing irregular verbs and idioms if needed
 def summarize_document(content):    
     
     if not content or len(content.strip()) == 0:
@@ -361,7 +393,7 @@ def summarize_document(content):
             try:
                 r = client.chat.completions.create(
                     model = use_myllm,      
-                    max_tokens = max_tokens,      
+                    max_tokens = max_tokens,               
                     messages=[
                         {"role": "system", "content": "Summarize this document chunk concisely."},
                         {"role": "user", "content": chunk}
@@ -377,10 +409,11 @@ def summarize_document(content):
 
         combined = "\n".join(partials)
 
+        # where the summary magic happens
         prompt = f"""
         <document>{combined}</document>
         <request>
-        Summarize in {summary_sentences} sentences with {summary_bullets} bullet points.
+        Summarize in {summary_sentences} sentences with {summary_bullets} bullet points. Explain everything in English suitable for a learner at level {summary_level}. If the temperature is closer to 2.0, feel free to be more eccentric.
         </request>
         <format>
         Summary sentence(s) can go here
@@ -391,29 +424,52 @@ def summarize_document(content):
         </format>
         """
 
-        if summary_sentiment == "Yes":
-            prompt += """\n
-                <additional_request>Provide a brief sentiment analysis.</additional_request>
+        if summary_irregular == "Yes":
+            prompt += f"""\n
+                <additional_request>Show all the irregular verbs in this document. For each verb, show the past tense and special exceptions about the verb. Ignore any verbs where the past tense ends with -d, instead of -ed, just because the verb ends in a -e. Explain everything in English suitable for a learner at level {summary_level}.</additional_request>
                 <add_to_format>
-                Sentiment analysis:
-                - Sentiment summary here
+                🤪 Irregular verbs:
+                - Verb 1: past tense and exceptions 
+                    - Example of a sentence with this verb.
+                - Verb 2: past tense and exceptions 
+                    - Example of a sentence with this verb.
                 </add_to_format>
             """
 
-        if summary_ner == "Yes":
-            prompt += """\n
-                <additional_request>List named entities grouped by type.</additional_request>
+        if summary_idioms == "Yes":
+            prompt += f"""\n
+                <additional_request>Show and explain idioms in this document. For each idiom, provide its meaning and usage. Explain everything in English suitable for a learner at level {summary_level}. If there are none at that level, still include some lower-level idioms and indicate its CEFR level in brackets.</additional_request>
                 <add_to_format>
-                Named entities:
-                - Named entity 1
-                - Named entity 2
+                😎 Idioms:
+                - **Idiom 1**: meaning and usage
+                    - Example of a sentence with this idiom.
+                - **Idiom 2**: meaning and usage
+                    - Example of a sentence with this idiom.
                 </add_to_format>
             """
+
+        if summary_new_vocab == "Yes":
+            prompt += f"""\n
+                <additional_request>Show and explain new vocabulary (up to 7 words), from Level {summary_level} (and higher, if possible) in this document. For each word, provide its meaning, usage and origin. Do not repeat any words.</additional_request>
+                <add_to_format>
+                🤓 New vocabulary:
+                - **Word 1**: 
+                    - meaning
+                    - example of a sentence using this word
+                    - a brief note on its etymological origin
+                    
+                - **Word 2**: 
+                    - meaning
+                    - example of a sentence using this word
+                    - a brief note on its etymological origin
+                </add_to_format>
+            """    
 
         summary_response = client.chat.completions.create(
-            model = use_myllm,                        
+            model = use_myllm,    
+            temperature = answer_temperature,                   
             messages = [
-                {"role": "system", "content": "You summarize PDF documents clearly and concisely."},
+                {"role": "system", "content": "You summarize PDF documents clearly and concisely. You are also a teacher of the English language for new and advanced English learners. You can explain English grammar in a way that ESL students can understand."},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -434,8 +490,9 @@ if uploaded_files and st.session_state.processing_started:
     if st.session_state.embeddings is None:
         st.write(f"🔥 {text["processing_docs"]}")
         st.session_state.embeddings = ingest_files(uploaded_files)
-
+    
     st.header(f"📋 {text["summary_of_documents"]}")
+    st.markdown("<br>", unsafe_allow_html = True)
 
     if not st.session_state.summaries_done:
         with st.spinner(text["summary_generating"]):        
@@ -496,6 +553,17 @@ if docs_ready:
             st.markdown(pair['q'])
         with st.chat_message(name = "AI", avatar = "❇️"):
             st.markdown(pair["a"])
+    
+    # auto-scroll to bottom after messages are displayed
+    if st.session_state.qa_history:
+        st.markdown(
+            """
+            <script>
+                window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
 
     # chat reset controls above chat
     if st.session_state.get("doc_contents"):
@@ -503,11 +571,18 @@ if docs_ready:
         with col1:
             st.markdown(
                 f"""
-                <a href="#upload-documents-to-summarize" style="display: inline-block;  
+                <a href="#upload-an-english-pdf-to-understand-it-better" style="display: inline-block;  
                 text-decoration: none; 
                 text-align: left; width: 100%; 
                 ">
                 ⬆️ {text["files_and_settings"]}
+                </a>
+                <br>
+                <a href="#summary-of-documents" style="display: inline-block;  
+                text-decoration: none; 
+                text-align: left; width: 100%; 
+                ">
+                ⬆️ {text["summary_of_documents"]}
                 </a>
                 """,
                 unsafe_allow_html = True
@@ -562,9 +637,10 @@ if docs_ready:
 
             # retrieval augmented generated AI chat message!!!
             with st.chat_message(name = "❇️", avatar = "❇️"):
-                with st.spinner(f"{text['thinking']}"):
+                with st.spinner(f"{text['thinking']}"):                    
                     r = client.chat.completions.create(
                         model = use_myllm,
+                        temperature = answer_temperature,                        
                         max_tokens = max_tokens,
                         messages = [
                             {"role": "system", "content": f"Answer using the provided context in {answer_sentences} sentences or less. If necessary, answer in more but try to be as concise as possible. If you do not know the answer, then say you don't know."},
@@ -573,7 +649,7 @@ if docs_ready:
                     )
                     
                     response = r.choices[0].message.content
-                    st.markdown(response)
+                    st.markdown(response)                    
             
             # add to history after displaying
             st.session_state.qa_history.append({
