@@ -1,4 +1,4 @@
-# esleasel
+# ESL-easel
 
 an LLM-powered English PDF document analyzer that
 

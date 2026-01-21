@@ -1,6 +1,6 @@
 # =========================================================
-# esleasel by @joncoded (aka @jonchius)
-# English language assistant for new and advanced learners
+# ESL-easel by @joncoded (aka @jonchius)
+# English PDF analyzer for new and advanced English learners
 # app.py
 #
 # features: 
@@ -46,7 +46,7 @@ use_myllm = "openai/gpt-oss-20b"
 max_tokens = 3000
 
 # ui
-app_title = "ESLEASEL 🇬🇧"
+app_title = "ESL-easel 📝"
 
 # =========================================================
 # API KEYS

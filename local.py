@@ -4,7 +4,7 @@
 
 l = {
   "en" : {
-    "tagline" : "English language assistant for new and advanced learners (a @joncoded project)",
+    "tagline" : "English language helper for all learners (a @joncoded project)",
     "ask_question" : "Ask a question", 
     "bullets" : "Bullet points",
     "discussion_history" : "Discussion history",
@@ -62,7 +62,7 @@ l = {
     "no": "No"
   },
   "fr": {      
-    "tagline" : "assistant de langue anglaise pour apprenants nouveaux et avancés (par @joncoded)",
+    "tagline" : "assistant de langue anglaise pour tous les apprenants (par @joncoded)",
     "ask_question" : "Veuillez poser une question (en anglais seulement pour l'instant)", 
     "bullets" : "Puces en liste",
     "discussion_history" : "Historique de la discussion",
