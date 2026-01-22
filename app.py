@@ -429,10 +429,14 @@ def summarize_document(content):
                 <additional_request>Show all the irregular verbs in this document. For each verb, show the past tense and special exceptions about the verb. Ignore any verbs where the past tense ends with -d, instead of -ed, just because the verb ends in a -e. Explain everything in English suitable for a learner at level {summary_level}.</additional_request>
                 <add_to_format>
                 🤪 Irregular verbs:
-                - Verb 1: present (first person: [verb] and third person: [verbs]) and past tense
-                    - Example of a sentence with this verb.
-                - Verb 2: present (first person: [verb] and third person: [verbs]) and past tense
-                    - Example of a sentence with this verb.
+                - Verb 1: present (first person: [verb] and third person: [verbs]), past tense: [verbed] + past participle: [verbed]
+                    - Example of a sentence with this verb in the present tense.
+                    - Example of a sentence with this verb in the past tense.
+                    - Example of a sentence with this verb in the past participle.
+                - Verb 2: present (first person: [verb] and third person: [verbs]), past tense: [verbed] + past participle: [verbed]
+                    - Example of a sentence with this verb in the present tense.
+                    - Example of a sentence with this verb in the past tense.
+                    - Example of a sentence with this verb in the past participle.
                 </add_to_format>
             """
 
