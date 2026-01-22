@@ -42,7 +42,7 @@ use_index = os.getenv("PINECONE_INDEX").strip()
 use_phost = os.getenv("PINECONE_HOST").strip()
 
 # llm
-use_myllm = "openai/gpt-oss-20b"
+use_myllm = "openai/gpt-oss-120b"
 max_tokens = 3000
 
 # ui
