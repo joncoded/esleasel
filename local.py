@@ -43,7 +43,7 @@ l = {
     "settings_about_you" : "About you",
     "settings_chat_answers" : "How would you like each chat message?",  
     "settings_docs_question" : "How long would you like each PDF summary?",    
-    "splitted_documents" : "Documents splitted into chunks!",  
+    "splitted_documents" : "Documents split into chunks!",  
     "splitting_documents" : "Splitting document into chunks...",
     "start_over" : "Start over", 
     "submit_message" : "Submit", 
