@@ -21,6 +21,14 @@ Run the demo on [esleasel.streamlit.app](https://esleasel.streamlit.app)
 
 !["app has fallen" asleep](https://media2.dev.to/dynamic/image/width=1000,height=420,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fhm0wrzfg9ojk6rozzl64.png)
 
+## Screenshots
+
+!["screenshot of esleasel showing summary"](https://cdn.sanity.io/images/b148t9sa/production/77abe7fb8ba57a16033e74a6953081c0f8f0476a-873x951.png)
+
+!["screenshot of esleasel showing idioms"](https://cdn.sanity.io/images/b148t9sa/production/b9bb778ee0713dc4508fcf2d0fdeb21aeae188f5-905x784.png)
+
+!["screenshot of eslease showing chat"](https://cdn.sanity.io/images/b148t9sa/production/3240fb9a64fcd879d6990b06dd94e9f095ffe18b-982x1079.png)
+
 
 ## Setup (for developers)
 
