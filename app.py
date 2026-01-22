@@ -438,7 +438,7 @@ def summarize_document(content):
 
         if summary_idioms == "Yes":
             prompt += f"""\n
-                <additional_request>Show and explain idioms in this document. For each idiom, provide its meaning and usage. Explain everything in English suitable for a learner at level {summary_level}. If there are none at that level, still include some lower-level idioms and indicate its CEFR level in brackets.</additional_request>
+                <additional_request>Show and explain idioms in this document. For each idiom, provide its meaning and usage. Explain everything in English suitable for a learner at level {summary_level}. If there are none at that level, still include some lower-level idioms (from the document) and indicate its CEFR level in brackets.</additional_request>
                 <add_to_format>
                 😎 Idioms:
                 - **Idiom 1**: meaning and usage
