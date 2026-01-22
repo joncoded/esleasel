@@ -74,7 +74,7 @@ Finally, back in the command line, run the app on your localhost with:
 streamlit run app.py
 ```
 
-The app will usually run with the url `https://localhost:8501` 
+The app will usually run with the url `http://localhost:8501` 
 
 (if port 8501 is already used, it will host the app on `:8502` or so on...)
 
@@ -102,7 +102,7 @@ Translate the app into your language!
 
 * edit the `local.py` dictionary file by adding a new language (see `en` (English) and `fr` (French) as examples
 * go to `app.py` and check/change the `lang_options` variable
-
+* optionally, make a pull request as if making a Feature contribution as listed above
 
 ## Credits
 
