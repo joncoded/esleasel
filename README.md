@@ -17,7 +17,7 @@ an LLM-powered English PDF document analyzer that:
 
 Run the demo on [esleasel.streamlit.app](https://esleasel.streamlit.app)
 
-(If the app has "fallen asleep" then please press the "Yes, get this app back up" button to "wake" it up!)
+(If the app has "fallen asleep" then please press the "Yes, get this app back up!" button to "wake" it up!)
 
 !["app has fallen" asleep](https://media2.dev.to/dynamic/image/width=1000,height=420,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fhm0wrzfg9ojk6rozzl64.png)
 
